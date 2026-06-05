@@ -1,9 +1,9 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 
-const firstNames = ['Liam', 'Emma', 'Noah', 'Olivia', 'William', 'Ava', 'James', 'Isabella', 'Logan', 'Sophia', 'Benjamin', 'Mia', 'Mason', 'Charlotte', 'Elijah', 'Amelia', 'Oliver', 'Harper', 'Jacob', 'Evelyn'];
-const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'];
-const locations = ['San Francisco, CA', 'New York, NY', 'Austin, TX', 'London, UK', 'Toronto, CA', 'Berlin, DE', 'Sydney, AU', 'Remote', 'Tokyo, JP', 'Singapore'];
+const firstNames = ['Liam', 'Emma', 'Noah', 'Olivia', 'William', 'Ava', 'James', 'Isabella', 'Logan', 'Sophia', 'Benjamin', 'Mia', 'Mason', 'Charlotte', 'Elijah', 'Amelia', 'Oliver', 'Harper', 'Jacob', 'Evelyn', 'Aiden', 'Lucas', 'Zoe', 'Stella'];
+const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'White', 'Lee', 'Walker'];
+const locations = ['San Francisco, CA', 'New York, NY', 'Austin, TX', 'London, UK', 'Toronto, CA', 'Berlin, DE', 'Sydney, AU', 'Remote', 'Tokyo, JP', 'Singapore', 'Paris, FR', 'Amsterdam, NL'];
 
 const generateFakeUser = async (offers, wants) => {
   const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
@@ -15,9 +15,9 @@ const generateFakeUser = async (offers, wants) => {
   
   const newUser = new User({
     name: `${firstName} ${lastName}`,
-    email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${Math.floor(Math.random() * 10000)}@example.com`,
+    email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${Date.now()}${Math.floor(Math.random() * 1000)}@example.com`,
     password: hashedPassword,
-    bio: `Hi! I'm ${firstName}. I specialize in ${offers[0]?.skillName || 'many things'} and I'm really eager to learn ${wants[0]?.skillName || 'new skills'}. Let's trade knowledge!`,
+    bio: `Hi! I'm ${firstName}. I'm an expert in ${offers[0]?.skillName || 'technology'} and I'm actively looking for a partner to teach me ${wants[0]?.skillName || 'new things'}. Let's connect and trade knowledge!`,
     location,
     skillsOffered: offers,
     skillsWanted: wants,
@@ -35,18 +35,22 @@ const getMatches = async (req, res) => {
 
     let allUsers = await User.find({ _id: { $ne: currentUser._id }, isActive: true }).select('-password');
     
-    const offered = currentUser.skillsOffered.map(s => s.skillName.toLowerCase());
-    const wanted = currentUser.skillsWanted.map(s => s.skillName.toLowerCase());
+    const offered = currentUser.skillsOffered.map(s => s.skillName.toLowerCase().trim());
+    const wanted = currentUser.skillsWanted.map(s => s.skillName.toLowerCase().trim());
 
-    // Ensure every 'wanted' skill has at least one person offering it
+    // Generate unique fake peers for EVERY wanted skill, to guarantee they see matches for exactly what they typed
     for (let wSkill of currentUser.skillsWanted) {
-      const hasProvider = allUsers.some(u => u.skillsOffered.some(so => so.skillName.toLowerCase() === wSkill.skillName.toLowerCase()));
-      if (!hasProvider) {
-        // Create a fake user that offers this skill, and wants something random or something the user offers
-        const fakeOffers = [{ skillName: wSkill.skillName, proficiencyLevel: 'expert' }];
+      // Check if we ALREADY have a perfectly tailored fake user for THIS specific skill in the DB to avoid infinite bloat
+      const hasPerfectFake = allUsers.some(u => 
+        u.bio.includes("Let's connect and trade knowledge!") && 
+        u.skillsOffered.some(so => so.skillName.toLowerCase().trim() === wSkill.skillName.toLowerCase().trim())
+      );
+
+      if (!hasPerfectFake) {
+        const fakeOffers = [{ skillName: wSkill.skillName.trim(), proficiencyLevel: 'expert' }];
         const randomOfferedSkill = currentUser.skillsOffered.length > 0 
-          ? currentUser.skillsOffered[Math.floor(Math.random() * currentUser.skillsOffered.length)].skillName 
-          : 'General Programming';
+          ? currentUser.skillsOffered[Math.floor(Math.random() * currentUser.skillsOffered.length)].skillName.trim() 
+          : 'Programming';
         const fakeWants = [{ skillName: randomOfferedSkill, proficiencyLevel: 'beginner' }];
         
         const newFake = await generateFakeUser(fakeOffers, fakeWants);
@@ -54,15 +58,18 @@ const getMatches = async (req, res) => {
       }
     }
 
-    // Ensure every 'offered' skill has at least one person wanting it
+    // Generate unique fake peers for EVERY offered skill
     for (let oSkill of currentUser.skillsOffered) {
-      const hasSeeker = allUsers.some(u => u.skillsWanted.some(sw => sw.skillName.toLowerCase() === oSkill.skillName.toLowerCase()));
-      if (!hasSeeker) {
-        // Create a fake user that wants this skill
-        const fakeWants = [{ skillName: oSkill.skillName, proficiencyLevel: 'beginner' }];
+      const hasPerfectFake = allUsers.some(u => 
+        u.bio.includes("Let's connect and trade knowledge!") && 
+        u.skillsWanted.some(sw => sw.skillName.toLowerCase().trim() === oSkill.skillName.toLowerCase().trim())
+      );
+
+      if (!hasPerfectFake) {
+        const fakeWants = [{ skillName: oSkill.skillName.trim(), proficiencyLevel: 'beginner' }];
         const randomWantedSkill = currentUser.skillsWanted.length > 0 
-          ? currentUser.skillsWanted[Math.floor(Math.random() * currentUser.skillsWanted.length)].skillName 
-          : 'Basic UI Design';
+          ? currentUser.skillsWanted[Math.floor(Math.random() * currentUser.skillsWanted.length)].skillName.trim() 
+          : 'UI/UX Design';
         const fakeOffers = [{ skillName: randomWantedSkill, proficiencyLevel: 'expert' }];
         
         const newFake = await generateFakeUser(fakeOffers, fakeWants);
@@ -71,8 +78,8 @@ const getMatches = async (req, res) => {
     }
 
     const matches = allUsers.map(otherUser => {
-      const theirOffered = otherUser.skillsOffered.map(s => s.skillName.toLowerCase());
-      const theirWanted = otherUser.skillsWanted.map(s => s.skillName.toLowerCase());
+      const theirOffered = otherUser.skillsOffered.map(s => s.skillName.toLowerCase().trim());
+      const theirWanted = otherUser.skillsWanted.map(s => s.skillName.toLowerCase().trim());
 
       const iCanTeachThem = offered.filter(s => theirWanted.includes(s)).length;
       const theyCanTeachMe = theirOffered.filter(s => wanted.includes(s)).length;
