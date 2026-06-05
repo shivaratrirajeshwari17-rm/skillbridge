@@ -17,7 +17,7 @@ const server = http.createServer(app);
 // Socket.io setup
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // Vite default port
+    origin: '*', // Allow all origins for the live Vercel deployment
     methods: ['GET', 'POST']
   }
 });

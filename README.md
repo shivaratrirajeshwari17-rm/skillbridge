@@ -1,5 +1,8 @@
 # Skill Bridge 🤝
 
+**🔴 Live Demo:** [https://skillbridge-sigma-five.vercel.app/](https://skillbridge-sigma-five.vercel.app/)  
+**🟢 Live API:** [https://skillbridge-1rs8.onrender.com](https://skillbridge-1rs8.onrender.com)
+
 Skill Bridge is a modern, premium Peer-to-Peer (P2P) Skill Exchange Platform built using the MERN stack. It intelligently connects individuals who want to learn new skills with those who can teach them, fostering a completely non-monetary, knowledge-bartering community.
 
 ## 🚀 Features
